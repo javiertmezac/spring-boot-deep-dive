@@ -1,45 +1,34 @@
-# Spring Boot Deep Dive — TaskFlow Bootcamp
+# Branch 00 — Project Setup
 
-A progressive, branch-by-branch Spring Boot project built for a 3-day deep-dive
-bootcamp (entry / mid / senior). Each branch is one teaching checkpoint. Diff
-any two branches to see exactly what a concept added:
+**Day 1 · Spring Framework & Spring Boot**
 
-```bash
-git switch 05-rest-api
-git diff 04-properties-and-profiles..05-rest-api
-```
+## Goal
+See how a Spring Boot project is created and what the absolute minimum looks like.
 
-## Branches
-
-| Day | Branch | Concept |
-|-----|--------|---------|
-| 1 | `00-project-setup` | Spring Boot, starters, embedded container |
-| 1 | `01-java-without-spring` | The pain: tight coupling, manual `new` |
-| 1 | `02-first-spring-context` | IoC, `ApplicationContext`, beans |
-| 1 | `03-dependency-injection` | Interfaces, `@Primary`, `@Qualifier` |
-| 1 | `04-command-line-runner` | Bean lifecycle / startup |
-| 1 | `05-properties-and-profiles` | `@ConfigurationProperties`, `@Profile` |
-| 2 | `06-rest-api` | Spring MVC, `DispatcherServlet`, JSON |
-| 2 | `07-request-response-dtos` | API contracts, DTOs |
-| 2 | `08-validation` | Bean Validation, `@Valid` |
-| 2 | `09-jpa-h2` | Spring Data JPA, repositories |
-| 2 | `10-service-layer` | Layered architecture |
-| 2 | `11-pagination-search` | `Page<T>`, derived queries |
-| 2 | `12-global-exception-handler` | `@ControllerAdvice` |
-| 2 | `13-security-basic-auth` | `SecurityFilterChain`, auth/authz |
-| 2 | `14-internals-and-actuator` | `BeanPostProcessor`, lifecycle, actuator |
-| 3 | `15-custom-starter` | **Auto-configuration & your own starter** |
-| 3 | `16-custom-health-indicator` | Conditional beans, production readiness |
-| 3 | `17-spring-ai` | `ChatClient`, AI integration |
-| 3 | `18-final-version` | Everything assembled |
-
-## Requirements
-
-- JDK 21+ (built/tested on Corretto 25)
-- Maven 3.9+
+- `pom.xml` — inherits `spring-boot-starter-parent` (4.1.0), one dependency: `spring-boot-starter`.
+- `TaskflowApplication.java` — a single class with `@SpringBootApplication` + `main`.
+- `application.properties` — just an app name.
 
 ## Run
-
 ```bash
 mvn spring-boot:run
 ```
+The app starts the Spring `ApplicationContext`, prints the banner, and exits
+(there's no web server yet — that arrives in branch 06).
+
+## Talking points
+- **Starter dependencies** — `spring-boot-starter` pulls in core + logging + a
+  curated, version-aligned dependency set. You never pick versions yourself; the
+  parent BOM does.
+- **Embedded container** — coming once we add `-web`; Boot favors *embedded*
+  servers over deploying a WAR to an external one.
+- **`@SpringBootApplication`** — a meta-annotation. We decode it at the end of
+  Day 1: `@Configuration` + `@EnableAutoConfiguration` + `@ComponentScan`.
+- **`SpringApplication.run(...)`** — bootstraps the container.
+
+## 🔵 Stretch (senior)
+Run `mvn dependency:tree` and find how many JARs one `spring-boot-starter` line
+brought in. Ask: who chose those versions?
+
+## Next
+`01-java-without-spring` — we build the same idea *without* Spring to feel the pain.
