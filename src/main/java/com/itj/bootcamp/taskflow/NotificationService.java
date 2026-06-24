@@ -1,4 +1,4 @@
-package com.exactsciences.taskflow;
+package com.itj.bootcamp.taskflow;
 
 /**
  * Depend on this interface, not a concrete class. Now switching Email -> SMS

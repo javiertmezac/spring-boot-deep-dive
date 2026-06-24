@@ -1,4 +1,4 @@
-package com.exactsciences.taskflow;
+package com.itj.bootcamp.taskflow;
 
 import java.util.Arrays;
 import org.springframework.boot.CommandLineRunner;

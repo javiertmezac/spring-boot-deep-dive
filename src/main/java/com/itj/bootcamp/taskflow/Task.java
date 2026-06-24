@@ -1,4 +1,4 @@
-package com.exactsciences.taskflow;
+package com.itj.bootcamp.taskflow;
 
 /**
  * Plain in-memory domain object for now. Becomes a JPA entity in branch 09.

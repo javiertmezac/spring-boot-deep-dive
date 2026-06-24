@@ -1,60 +1,45 @@
-# Branch 05 — Properties & Profiles
+# Branch 06 — REST API
 
-**Day 1 · Externalized configuration & environment-specific behavior** *(last Day 1 topic)*
+**Day 2 · Spring MVC**
 
 ## Goal
-Stop hard-coding values. Bind configuration type-safely, and change behavior per
-environment without recompiling.
+Expose tasks over HTTP. Meet the `DispatcherServlet`, request mapping, and
+automatic JSON serialization.
 
-## What changed vs 04
-- `TaskflowProperties` (`@ConfigurationProperties(prefix = "taskflow")`) binds
-  all `taskflow.*` keys; registered via `@EnableConfigurationProperties`.
-- `spring-boot-configuration-processor` added → IDE auto-complete for our keys.
-- Three property files: `application.properties` (base, activates `dev`),
-  `application-dev.properties`, `application-prod.properties`.
-- `EmailNotificationService` → `@Profile("dev")`, `SmsNotificationService` →
-  `@Profile("prod")`. The active profile now selects the implementation.
-- `TaskService` uses `properties.getRecipient()` instead of a literal.
+## What changed vs 05
+- `spring-boot-starter` → **`spring-boot-starter-web`** (embedded Tomcat + Spring
+  MVC + Jackson). The app is now a web server and stays running.
+- New `TaskController` (`@RestController`) with `GET /tasks` and `POST /tasks`.
+- Tasks are still stored in memory by `TaskService` (seeded at startup).
 
-## Run — dev (default)
+## Run
 ```bash
 mvn spring-boot:run
 ```
-```
->> Active profiles: [dev]
->> Greeting: Hello from DEV (Email notifications)
-[EMAIL] to=dev-user@taskflow.dev : Task created: ...
-```
 
-## Run — prod
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=prod
+# list
+curl http://localhost:8080/tasks
+
+# create
+curl -X POST http://localhost:8080/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Demo REST"}'
 ```
-```
->> Active profiles: [prod]
->> Greeting: Hello from PROD (SMS notifications)
-[SMS] to=ops@taskflow.dev : Task created: ...
-```
-Same code, same beans declared — **only the active profile changed**, and both
-the notification channel *and* the config values flipped.
 
 ## Concepts
-- Externalized configuration & property precedence (CLI > profile file > base)
-- `@ConfigurationProperties` (type-safe) vs `@Value` (one-off)
-- `@Profile` for environment-specific beans
-- How this ties back to DI: profiles are just another bean-resolution tool
+- **Embedded container** — no WAR, no external Tomcat; the server is *in* the app.
+- **`DispatcherServlet`** — the front controller routing every request to a handler.
+- **`@RestController` / `@RequestMapping` / `@GetMapping` / `@PostMapping`**.
+- **JSON serialization** — Jackson turns `Task` ↔ JSON automatically.
+
+## ⚠️ Smell to call out
+`POST` takes a `Map<String, Object>` — no type, no contract, no validation. We're
+also returning the **domain object** straight to clients. Both are fixed next.
 
 ## 🔵 Stretch (senior)
-Override `taskflow.recipient` with an env var (`TASKFLOW_RECIPIENT=...`) or a
-JVM `-Dtaskflow.recipient=` and watch it win over the file. Discuss the property
-source order Spring Boot uses.
-
-## End of Day 1 — Annotations recap
-Decode `@SpringBootApplication` = `@Configuration` + `@EnableAutoConfiguration`
-+ `@ComponentScan`. Map every annotation seen so far: `@Component`/`@Service`,
-`@Bean`, `@Primary`/`@Qualifier`, `@PostConstruct`, `@ConfigurationProperties`,
-`@EnableConfigurationProperties`, `@Profile`. `@EnableAutoConfiguration` is the
-thread we pull on Day 3.
+Hit a bad URL and inspect the default error JSON. Where did `/error` come from?
+(Foreshadows auto-configuration: `BasicErrorController`.)
 
 ## Next
-`06-rest-api` — Day 2 begins: expose tasks over HTTP with Spring MVC.
+`07-request-response-dtos` — replace the loose Map and stop leaking entities.
