@@ -1,42 +1,43 @@
-# Branch 08 — Validation
+# Branch 09 — JPA + H2
 
-**Day 2 · Spring MVC — request validation**
+**Day 2 · Spring Data (persistence)**
 
 ## Goal
-Reject malformed requests at the edge, before any business logic runs.
+Replace the in-memory list with a real database and the repository pattern —
+without writing any SQL or any DAO implementation.
 
-## What changed vs 07
-- Added `spring-boot-starter-validation` (Hibernate Validator).
-- `CreateTaskRequest.title` now carries `@NotBlank` + `@Size(min=3, max=120)`.
-- `TaskController.create` marks the body `@Valid`.
+## What changed vs 08
+- Added `spring-boot-starter-data-jpa` + `h2` (in-memory DB).
+- `Task` is now a JPA `@Entity` (`@Id @GeneratedValue`); the **DB** assigns ids.
+- New `TaskRepository extends JpaRepository<Task, Long>` — no implementation.
+- `TaskService` saves/loads through the repository; the `ArrayList`/`AtomicLong`
+  are gone.
+- `application.properties` configures H2, SQL logging, and the H2 console.
 
-## Run & test
+## Run
 ```bash
 mvn spring-boot:run
+```
+- Watch the console: Hibernate logs the `insert`/`select` SQL it generates.
+- Open `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:taskflow`,
+  user `sa`) and run `SELECT * FROM TASKS;`.
 
-# valid -> 200
-curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Valid task"}'
-
-# invalid (blank) -> 400 Bad Request
-curl -i -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":""}'
-
-# invalid (too short) -> 400
-curl -i -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"ab"}'
+```bash
+curl http://localhost:8080/tasks
+curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Persisted task"}'
 ```
 
 ## Concepts
-- **Bean Validation (Jakarta)** — declarative constraints on the DTO.
-- **`@Valid`** — tells Spring MVC to run those constraints; a violation throws
-  `MethodArgumentNotValidException` → automatic **400**.
-- Validation belongs on the **contract**, not buried in the service.
-
-## ⚠️ Note
-The default 400 body is generic. Branch 12 (`@ControllerAdvice`) makes error
-responses clean and consistent.
+- **ORM** — `Task` ↔ `TASKS` table mapping via annotations.
+- **Repository pattern** — `JpaRepository` gives CRUD + paging for free; the bean
+  is a runtime-generated proxy.
+- **Auto-configuration teaser** — adding the JPA starter auto-configured a
+  `DataSource`, `EntityManagerFactory`, and `TransactionManager`. We dig into
+  *how* on Day 3.
 
 ## 🔵 Stretch (senior)
-Add `@Future` to a new `dueDate` field, or write a custom constraint annotation.
-Discuss where validation should NOT live (don't re-validate the same rule in 3 layers).
+Set `spring.jpa.hibernate.ddl-auto=create-drop` vs `update` and discuss why you'd
+never let Hibernate manage schema in production (→ Flyway/Liquibase / Ratchet).
 
 ## Next
-`09-jpa-h2` — start of the Spring Data block: real persistence.
+`10-service-layer` — formalize the layering and add real business logic + transactions.
