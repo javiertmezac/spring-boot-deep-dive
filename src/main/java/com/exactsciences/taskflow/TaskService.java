@@ -5,12 +5,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class TaskService {
 
-    private final EmailNotificationService notificationService;
+    private final NotificationService notificationService;
 
-    // Constructor injection: TaskService no longer CREATES its dependency,
-    // it DECLARES what it needs. The container provides it. That is the
-    // "inversion" in Inversion of Control.
-    public TaskService(EmailNotificationService notificationService) {
+    // Depends on the INTERFACE. Two implementations exist (Email, Sms), so the
+    // container needs a tie-breaker — it injects the @Primary one (Email).
+    //
+    // To force SMS instead, qualify the parameter and the source of TaskService
+    // still doesn't care which concrete class it gets:
+    //
+    //   public TaskService(@Qualifier("smsNotificationService") NotificationService n)
+    public TaskService(NotificationService notificationService) {
         this.notificationService = notificationService;
     }
 
