@@ -3,29 +3,27 @@ package com.exactsciences.taskflow;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class TaskflowApplication {
 
     public static void main(String[] args) {
-        // run() returns the ApplicationContext — the container that now owns
-        // and wires every bean. We never call `new TaskService()` again.
-        ConfigurableApplicationContext context =
-                SpringApplication.run(TaskflowApplication.class, args);
-
-        System.out.println("Beans managed by the context: "
-                + context.getBeanDefinitionCount());
+        SpringApplication.run(TaskflowApplication.class, args);
     }
 
-    // A @Bean defined in a @Configuration-style class. The container calls this
-    // method, sees it needs a TaskService, finds that bean, and injects it.
+    // CommandLineRunner.run() executes once, AFTER the context is fully started.
+    // Classic use: seed data, warm caches, print startup diagnostics.
     @Bean
-    CommandLineRunner runner(TaskService taskService) {
+    CommandLineRunner seedTasks(TaskService taskService) {
         return args -> {
+            System.out.println(">> CommandLineRunner: seeding tasks");
             taskService.createTask("Write bootcamp materials");
             taskService.createTask("Review pull requests");
+            taskService.createTask("Prepare Day 3 demo");
+
+            System.out.println(">> Current tasks:");
+            taskService.findAll().forEach(task -> System.out.println("   " + task));
         };
     }
 }

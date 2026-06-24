@@ -1,42 +1,44 @@
-# Branch 03 — Dependency Injection
+# Branch 04 — CommandLineRunner & Startup Lifecycle
 
-**Day 1 · Polymorphism, bean resolution, constructor injection**
+**Day 1 · Bean lifecycle & initialization**
 
 ## Goal
-Remember the branch 01 exercise where switching Email→SMS meant editing
-`TaskService`? Now it's a wiring decision. `TaskService` depends only on the
-`NotificationService` **interface**.
+Understand *when* things happen at startup, and the standard hook for running
+code once the application is ready.
 
-## What changed vs 02
-- New `NotificationService` interface.
-- `EmailNotificationService` and `SmsNotificationService` both implement it.
-- `EmailNotificationService` is `@Primary`.
-- `TaskService` now injects the interface — and never names a concrete class.
-
-## The resolution problem
-Two beans satisfy `NotificationService`. How does the container pick?
-- **`@Primary`** — the default winner when the type is ambiguous → Email runs.
-- **`@Qualifier("smsNotificationService")`** — explicitly demand a specific bean.
-
-Without `@Primary` or `@Qualifier`, startup **fails** with
-`NoUniqueBeanDefinitionException` — a great thing to show on purpose.
+## What changed vs 03
+- New `Task` domain object (in-memory for now).
+- `TaskService` holds an in-memory list and exposes `createTask` / `findAll`,
+  plus a `@PostConstruct init()` to show the init hook.
+- `CommandLineRunner` seeds three tasks at startup and prints them.
 
 ## Run
 ```bash
 mvn spring-boot:run
 ```
-Output shows `[EMAIL]` (the primary).
-
-## 🏋️ Exercise
-1. Add `@Qualifier("smsNotificationService")` to the `TaskService` constructor
-   parameter → output flips to `[SMS]`, with **zero** changes to business logic.
-2. Remove `@Primary` and *don't* qualify → watch the context fail to start.
-   Read the exception message.
+Watch the **order** of the output:
+```
+>> TaskService bean initialized (@PostConstruct)   <- during context startup
+...Spring "Started TaskflowApplication" log line...
+>> CommandLineRunner: seeding tasks                <- after context is ready
+>> Current tasks:
+   Task{id=1, ...}
+```
 
 ## Concepts
-- Program to an interface (polymorphism)
-- Bean resolution: by type, then `@Primary` / `@Qualifier`
-- Why constructor injection makes the dependency explicit and testable
+- **Bean initialization** — `@PostConstruct` runs after injection, before the
+  app is "ready".
+- **`CommandLineRunner` / `ApplicationRunner`** — run *after* the context is
+  fully started; ideal for seeding/bootstrapping. Order multiple runners with
+  `@Order`.
+- **Startup lifecycle** — construct beans → inject → `@PostConstruct` →
+  context refreshed → runners.
+
+## 🔵 Stretch (senior)
+Add a second `CommandLineRunner` and use `@Order(1)` / `@Order(2)` to control
+which runs first. Then add `implements ApplicationListener<ApplicationReadyEvent>`
+to a bean and see where *that* fires relative to the runners.
 
 ## Next
-`04-command-line-runner` — a closer look at startup lifecycle and seeding data.
+`05-properties-and-profiles` — externalize configuration and switch behavior per
+environment. (Last Day 1 topic.)
