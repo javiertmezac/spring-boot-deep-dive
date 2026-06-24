@@ -1,6 +1,8 @@
 package com.itj.bootcamp.taskflow;
 
 import java.util.Arrays;
+
+import com.itj.bootcamp.taskflow.starter.TaskflowGreetingService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,11 +21,14 @@ public class TaskflowApplication {
     @Bean
     CommandLineRunner seedTasks(TaskService taskService,
                                 TaskflowProperties properties,
-                                Environment environment) {
+                                Environment environment,
+                                TaskflowGreetingService greetingService) {
         return args -> {
             System.out.println(">> Active profiles: "
                     + Arrays.toString(environment.getActiveProfiles()));
             System.out.println(">> Greeting: " + properties.getGreeting());
+            // This bean was never declared in our app — the starter provided it.
+            System.out.println(">> " + greetingService.greet());
 
             // Seed enough rows to demonstrate pagination and search.
             taskService.createTask("Write bootcamp materials");

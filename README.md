@@ -1,52 +1,70 @@
-# Branch 14 — Internals & Actuator
+# Branch 15 — Build Your Own Starter ⭐
 
-**Day 2 · Internals** *(the senior payoff — and the bridge to Day 3)*
+**Day 3 · Auto-configuration · Starters · Create your own starter** *(the highlight)*
 
-## Goal
-Open the hood. Make the container's mechanics *visible*: how beans get created,
-when lifecycle events fire, and how to introspect a running app.
+> This is the moment Spring Boot stops being magic. Every `spring-boot-starter-*`
+> you've added works exactly like the one you build here.
 
-## What changed vs 13
-- `internals/LoggingBeanPostProcessor` — a `BeanPostProcessor` that logs each of
-  our beans as it's initialized. **This is the same hook Spring uses** to build
-  `@Autowired`, `@Transactional`/AOP proxies, validation, etc.
-- `internals/StartupReporter` — injects the `ApplicationContext`, listens for
-  `ApplicationReadyEvent`, prints the bean count.
-- Added `spring-boot-starter-actuator`; exposed `health, beans, conditions, env,
-  mappings`; security permits `/actuator/**`.
+## What is a starter?
+Two things: (1) a curated set of dependencies, and (2) **auto-configuration** —
+classes that conditionally register beans so the feature "just works" when the
+jar is on the classpath.
 
-## Run & explore
+## What's here
+A second, standalone Maven project: **`taskflow-spring-boot-starter/`**
+
+```
+taskflow-spring-boot-starter/
+├── pom.xml                              (library jar; depends on spring-boot-autoconfigure)
+└── src/main/
+    ├── java/.../starter/
+    │   ├── TaskflowGreetingProperties   @ConfigurationProperties("taskflow.greeter")
+    │   ├── TaskflowGreetingService      the bean the starter contributes
+    │   └── TaskflowGreetingAutoConfiguration  @AutoConfiguration + @ConditionalOn*
+    └── resources/META-INF/spring/
+        └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
+```
+
+The `.imports` file is the registry: it lists the auto-configuration class so
+Boot discovers and applies it. **No `@ComponentScan` reaches the starter** — this
+file is how the bean gets in.
+
+The app (`taskflow-api`) just adds the dependency and **injects
+`TaskflowGreetingService`** — which it never declared.
+
+## Build & run (order matters)
 ```bash
+# 1) install the starter into your local Maven repo
+cd taskflow-spring-boot-starter
+mvn -q clean install
+cd ..
+
+# 2) run the app — it auto-configures the greeter
 mvn spring-boot:run
 ```
-Watch the startup log: `[BeanPostProcessor] before-init: taskService ...` for
-each bean, then `Context ready. Total bean definitions: N`.
-
-```bash
-curl http://localhost:8080/actuator/health
-curl http://localhost:8080/actuator/beans       | jq '.contexts.application.beans | keys'
-curl http://localhost:8080/actuator/conditions   # the auto-configuration report
-curl http://localhost:8080/actuator/mappings      # every URL -> handler
+Startup prints:
+```
+>> Hello, Spring Boot Bootcamp! (this bean came from taskflow-spring-boot-starter)
 ```
 
-## Concepts — how Spring actually works
-- **`BeanFactory` vs `ApplicationContext`** — the factory creates/wires beans;
-  the context adds events, i18n, resource loading, and runs `BeanPostProcessor`s.
-- **`BeanPostProcessor`** — the extension point behind most Spring "magic".
-- **Lifecycle** — definitions registered → instantiate → inject → BPP before →
-  `@PostConstruct` → BPP after → ready → `ApplicationReadyEvent`.
-- **Actuator** — production observability; `/conditions` previews exactly the
-  auto-configuration story we unpack on Day 3.
+## The conditions (the real lesson)
+- `@AutoConfiguration` — marks a config applied during Boot's auto-config phase.
+- `@ConditionalOnProperty(taskflow.greeter.enabled, matchIfMissing=true)` — only
+  active unless the app opts out. Set `taskflow.greeter.enabled=false` → the
+  bean vanishes and injection fails (proves the condition works).
+- `@ConditionalOnMissingBean` — the starter backs off if the app defines its own
+  `TaskflowGreetingService`. This is why starters are overridable.
+
+## 🏋️ Exercise
+1. Set `taskflow.greeter.enabled=false` → app fails to start (no bean). Read why.
+2. Set `taskflow.greeter.name=...` → greeting changes with no code edit.
+3. Declare your own `@Bean TaskflowGreetingService` in the app → `@ConditionalOnMissingBean`
+   makes the starter back off; your bean wins.
 
 ## 🔵 Stretch (senior)
-In `/actuator/conditions`, find a config that was **negative** (skipped) and read
-why. That `@ConditionalOn...` decision is precisely what you'll write in your own
-starter tomorrow.
+Open `/actuator/conditions` and find `TaskflowGreetingAutoConfiguration` in the
+report. You're now reading the same machinery for `DataSourceAutoConfiguration`,
+`SecurityAutoConfiguration`, etc.
 
-## End of Day 2
-You've built a secured, persistent, paginated REST API — and seen the machinery
-underneath it.
-
-## Next (Day 3)
-`15-custom-starter` — the highlight: build your own Spring Boot starter and
-auto-configuration.
+## Next
+`16-custom-health-indicator` — another conditional bean, this time for Actuator.
