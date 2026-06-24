@@ -1,42 +1,43 @@
-# Branch 11 — Pagination & Search
+# Branch 12 — Global Exception Handler
 
-**Day 2 · Spring Data — query derivation & pagination**
+**Day 2 · Spring MVC — consistent error responses**
 
 ## Goal
-Don't return unbounded lists. Page results and add search — using a method name
-instead of SQL.
+Replace ad-hoc 500s with one consistent, well-shaped error response for the
+whole API.
 
-## What changed vs 10
-- `TaskRepository.findByTitleContainingIgnoreCase(String, Pageable)` — a
-  **derived query**: Spring Data writes the SQL from the method name.
-- `TaskService.search(q, pageable)` returns `Page<Task>`.
-- `GET /tasks` now takes `?page=&size=&sort=` (resolved into a `Pageable`
-  automatically) plus an optional `?q=` filter, and returns a page.
-- Startup seeds 5 tasks for a visible demo.
+## What changed vs 11
+- New `exception` package: `TaskNotFoundException` (domain meaning, not HTTP).
+- `GlobalExceptionHandler` (`@RestControllerAdvice`) maps:
+  - `TaskNotFoundException` → **404** with an `ApiError` body.
+  - `MethodArgumentNotValidException` → **400** with per-field messages.
+- New `ApiError` record = the single error contract.
+- `TaskService.getById` now throws `TaskNotFoundException`.
 
 ## Run & test
 ```bash
 mvn spring-boot:run
 
-# first page of 2
-curl "http://localhost:8080/tasks?page=0&size=2"
-# sorted by title desc
-curl "http://localhost:8080/tasks?sort=title,desc"
-# search
-curl "http://localhost:8080/tasks?q=write"
+# 404 with a clean body (was an ugly 500 in branch 10/11)
+curl -i http://localhost:8080/tasks/999
+
+# 400 with field details
+curl -i -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"ab"}'
 ```
-The response includes `content`, `totalElements`, `totalPages`, `number`, `size`.
+404 body:
+```json
+{"status":404,"error":"Not Found","message":"Task not found: 999","details":[]}
+```
 
 ## Concepts
-- **Query derivation** — `findBy<Field><Op>` parsed into a query; no `@Query`.
-- **`Pageable` / `Page<T>`** — limit/offset + total count + sort, resolved from
-  request params by Spring Data web support.
-- Where derivation stops and `@Query` / Specifications begin.
+- **`@ControllerAdvice` / `@RestControllerAdvice`** — centralized, cross-cutting
+  exception handling.
+- **`@ExceptionHandler`** — exception type → HTTP response mapping.
+- Keep exceptions **domain-meaningful**; let the advice translate to HTTP.
 
 ## 🔵 Stretch (senior)
-Add `findByCompleted(boolean, Pageable)` and an endpoint filter. Then enable
-`logging.level.org.hibernate.SQL=DEBUG` and compare the generated SQL for a
-derived query vs a hand-written `@Query`.
+Compare this to extending `ResponseEntityExceptionHandler`, and to Spring 6's
+`ProblemDetail` (RFC 7807). Discuss when a global handler beats per-controller handling.
 
 ## Next
-`12-global-exception-handler` — turn that ugly 500 into a clean 404.
+`13-security-basic-auth` — lock the API down.

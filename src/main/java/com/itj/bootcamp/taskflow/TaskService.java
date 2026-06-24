@@ -1,6 +1,6 @@
 package com.itj.bootcamp.taskflow;
 
-import java.util.NoSuchElementException;
+import com.itj.bootcamp.taskflow.exception.TaskNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,10 +44,10 @@ public class TaskService {
     }
 
     public Task getById(Long id) {
-        // Temporary: a missing id throws NoSuchElementException -> HTTP 500.
-        // Branch 12 introduces TaskNotFoundException + @ControllerAdvice -> 404.
+        // A missing id throws TaskNotFoundException, which GlobalExceptionHandler
+        // maps to a clean HTTP 404. The service stays HTTP-agnostic.
         return taskRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Task not found: " + id));
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
     @Transactional
