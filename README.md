@@ -1,70 +1,53 @@
-# Branch 15 — Build Your Own Starter ⭐
+# Branch 16 — Custom Health Indicator
 
-**Day 3 · Auto-configuration · Starters · Create your own starter** *(the highlight)*
+**Day 3 · Production readiness · auto-configuration (consumer side)**
 
-> This is the moment Spring Boot stops being magic. Every `spring-boot-starter-*`
-> you've added works exactly like the one you build here.
+## Goal
+Contribute application-specific health to Actuator — and see that "implement an
+interface, register a bean" is the same pattern your starter relied on.
 
-## What is a starter?
-Two things: (1) a curated set of dependencies, and (2) **auto-configuration** —
-classes that conditionally register beans so the feature "just works" when the
-jar is on the classpath.
+## What changed vs 15
+- `health/TaskflowHealthIndicator implements HealthIndicator`, registered as a
+  `@Component`. It reports `UP` with the task count (or `DOWN` if the store fails).
 
-## What's here
-A second, standalone Maven project: **`taskflow-spring-boot-starter/`**
-
-```
-taskflow-spring-boot-starter/
-├── pom.xml                              (library jar; depends on spring-boot-autoconfigure)
-└── src/main/
-    ├── java/.../starter/
-    │   ├── TaskflowGreetingProperties   @ConfigurationProperties("taskflow.greeter")
-    │   ├── TaskflowGreetingService      the bean the starter contributes
-    │   └── TaskflowGreetingAutoConfiguration  @AutoConfiguration + @ConditionalOn*
-    └── resources/META-INF/spring/
-        └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
-```
-
-The `.imports` file is the registry: it lists the auto-configuration class so
-Boot discovers and applies it. **No `@ComponentScan` reaches the starter** — this
-file is how the bean gets in.
-
-The app (`taskflow-api`) just adds the dependency and **injects
-`TaskflowGreetingService`** — which it never declared.
-
-## Build & run (order matters)
+## Run & test
 ```bash
-# 1) install the starter into your local Maven repo
-cd taskflow-spring-boot-starter
-mvn -q clean install
-cd ..
-
-# 2) run the app — it auto-configures the greeter
 mvn spring-boot:run
+curl http://localhost:8080/actuator/health
 ```
-Startup prints:
-```
->> Hello, Spring Boot Bootcamp! (this bean came from taskflow-spring-boot-starter)
+```json
+{
+  "status": "UP",
+  "components": {
+    "db": { "status": "UP" },
+    "diskSpace": { "status": "UP" },
+    "ping": { "status": "UP" },
+    "taskflow": {
+      "status": "UP",
+      "details": { "store": "H2 (in-memory)", "taskCount": 5 }
+    }
+  }
+}
 ```
 
-## The conditions (the real lesson)
-- `@AutoConfiguration` — marks a config applied during Boot's auto-config phase.
-- `@ConditionalOnProperty(taskflow.greeter.enabled, matchIfMissing=true)` — only
-  active unless the app opts out. Set `taskflow.greeter.enabled=false` → the
-  bean vanishes and injection fails (proves the condition works).
-- `@ConditionalOnMissingBean` — the starter backs off if the app defines its own
-  `TaskflowGreetingService`. This is why starters are overridable.
+## Concepts
+- **`HealthIndicator`** — your check is aggregated into the overall health.
+- **Auto-detection** — Actuator's `HealthContributorAutoConfiguration` finds
+  every `HealthIndicator` bean. No registration file needed because the beans
+  are in the app's own component scan (contrast with the starter in branch 15,
+  which needed the `.imports` file precisely because it's *outside* the scan).
+- **Production readiness** — health drives k8s liveness/readiness probes and LBs.
 
-## 🏋️ Exercise
-1. Set `taskflow.greeter.enabled=false` → app fails to start (no bean). Read why.
-2. Set `taskflow.greeter.name=...` → greeting changes with no code edit.
-3. Declare your own `@Bean TaskflowGreetingService` in the app → `@ConditionalOnMissingBean`
-   makes the starter back off; your bean wins.
+## ⚠️ Spring Boot 4 note
+The health API moved: `HealthIndicator` / `Health` are now in
+`org.springframework.boot.health.contributor` (the new `spring-boot-health`
+module), not the old `org.springframework.boot.actuate.health`. If you copy a
+Boot 3 example, fix the import.
 
 ## 🔵 Stretch (senior)
-Open `/actuator/conditions` and find `TaskflowGreetingAutoConfiguration` in the
-report. You're now reading the same machinery for `DataSourceAutoConfiguration`,
-`SecurityAutoConfiguration`, etc.
+Stop the data layer (or throw in `health()`) and watch the overall status flip to
+`DOWN` and the HTTP status become `503`. Then group it under a readiness probe
+with `management.endpoint.health.group.readiness.include=taskflow,db`.
 
 ## Next
-`16-custom-health-indicator` — another conditional bean, this time for Actuator.
+`17-spring-ai` — the payoff: a real starter (Spring AI) doing what you just built.
