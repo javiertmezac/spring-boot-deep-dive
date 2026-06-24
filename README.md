@@ -1,43 +1,56 @@
-# Branch 12 — Global Exception Handler
+# Branch 13 — Security (Basic Auth)
 
-**Day 2 · Spring MVC — consistent error responses**
+**Day 2 · Spring Security**
 
 ## Goal
-Replace ad-hoc 500s with one consistent, well-shaped error response for the
-whole API.
+Lock the API down: nobody reads tasks without logging in, and only an admin can
+create them.
 
-## What changed vs 11
-- New `exception` package: `TaskNotFoundException` (domain meaning, not HTTP).
-- `GlobalExceptionHandler` (`@RestControllerAdvice`) maps:
-  - `TaskNotFoundException` → **404** with an `ApiError` body.
-  - `MethodArgumentNotValidException` → **400** with per-field messages.
-- New `ApiError` record = the single error contract.
-- `TaskService.getById` now throws `TaskNotFoundException`.
+## What changed vs 12
+- Added `spring-boot-starter-security`. (Just adding it secures everything with
+  a generated password — show that first, then replace it.)
+- `config/SecurityConfig` defines a `SecurityFilterChain`:
+  - `/h2-console/**` → open
+  - `POST /tasks/**` → role `ADMIN`
+  - everything else → authenticated
+  - HTTP Basic auth
+- Two in-memory users: `user/password` (USER) and `admin/admin` (ADMIN).
 
 ## Run & test
 ```bash
 mvn spring-boot:run
 
-# 404 with a clean body (was an ugly 500 in branch 10/11)
-curl -i http://localhost:8080/tasks/999
+# no credentials -> 401
+curl -i http://localhost:8080/tasks
 
-# 400 with field details
-curl -i -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"ab"}'
-```
-404 body:
-```json
-{"status":404,"error":"Not Found","message":"Task not found: 999","details":[]}
+# user can read -> 200
+curl -u user:password http://localhost:8080/tasks
+
+# user CANNOT create -> 403
+curl -i -u user:password -X POST http://localhost:8080/tasks \
+  -H "Content-Type: application/json" -d '{"title":"Nope"}'
+
+# admin can create -> 200
+curl -u admin:admin -X POST http://localhost:8080/tasks \
+  -H "Content-Type: application/json" -d '{"title":"Admin task"}'
 ```
 
 ## Concepts
-- **`@ControllerAdvice` / `@RestControllerAdvice`** — centralized, cross-cutting
-  exception handling.
-- **`@ExceptionHandler`** — exception type → HTTP response mapping.
-- Keep exceptions **domain-meaningful**; let the advice translate to HTTP.
+- **Filter chain** — security is servlet filters running before the controller.
+- **Authentication** (who are you? — Basic creds → `UserDetailsService`) vs
+  **Authorization** (what may you do? — role rules).
+- **`PasswordEncoder`** — never store plaintext; BCrypt here.
+
+## ⚠️ Teaching notes
+- CSRF is disabled only because this is a stateless API demo. Leave it ON for
+  session/browser apps.
+- In-memory users are for demos; real apps back `UserDetailsService` with a DB
+  or an OIDC provider (e.g. Okta, as in the LIFT platform).
 
 ## 🔵 Stretch (senior)
-Compare this to extending `ResponseEntityExceptionHandler`, and to Spring 6's
-`ProblemDetail` (RFC 7807). Discuss when a global handler beats per-controller handling.
+Print the filter chain (`logging.level.org.springframework.security=DEBUG`) and
+count how many filters a request passes through. Discuss where you'd plug a JWT
+or OAuth2 resource-server filter.
 
 ## Next
-`13-security-basic-auth` — lock the API down.
+`14-internals-and-actuator` — open the hood: beans, lifecycle, conditions.
