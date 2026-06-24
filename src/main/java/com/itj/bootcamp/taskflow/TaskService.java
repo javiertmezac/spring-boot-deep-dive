@@ -36,6 +36,10 @@ public class TaskService {
         return saved;
     }
 
+    public java.util.List<Task> findAll() {
+        return taskRepository.findAll();
+    }
+
     public Page<Task> search(String query, Pageable pageable) {
         if (query == null || query.isBlank()) {
             return taskRepository.findAll(pageable);

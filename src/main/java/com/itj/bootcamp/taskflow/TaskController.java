@@ -1,5 +1,6 @@
 package com.itj.bootcamp.taskflow;
 
+import com.itj.bootcamp.taskflow.ai.TaskAiService;
 import com.itj.bootcamp.taskflow.dto.CreateTaskRequest;
 import com.itj.bootcamp.taskflow.dto.TaskResponse;
 import jakarta.validation.Valid;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskAiService taskAiService;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService, TaskAiService taskAiService) {
         this.taskService = taskService;
+        this.taskAiService = taskAiService;
     }
 
     // Spring resolves Pageable from ?page=&size=&sort= automatically.
@@ -44,5 +47,11 @@ public class TaskController {
     @PostMapping("/{id}/complete")
     public TaskResponse complete(@PathVariable Long id) {
         return TaskResponse.from(taskService.completeTask(id));
+    }
+
+    // Ask the LLM to suggest a priority order for all current tasks.
+    @PostMapping("/prioritize")
+    public String prioritize() {
+        return taskAiService.prioritize(taskService.findAll());
     }
 }
