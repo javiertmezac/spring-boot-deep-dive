@@ -1,34 +1,40 @@
-# Branch 00 — Project Setup
+# Branch 01 — Java Without Spring
 
-**Day 1 · Spring Framework & Spring Boot**
+**Day 1 · IoC & DI (the problem)**
 
 ## Goal
-See how a Spring Boot project is created and what the absolute minimum looks like.
+Feel the pain Spring exists to solve. There is **no Spring here** — `main()`
+constructs everything by hand.
 
-- `pom.xml` — inherits `spring-boot-starter-parent` (4.1.0), one dependency: `spring-boot-starter`.
-- `TaskflowApplication.java` — a single class with `@SpringBootApplication` + `main`.
-- `application.properties` — just an app name.
+## What's here
+- `EmailNotificationService` — plain class.
+- `TaskService` — creates its own `EmailNotificationService` with `new`.
+- `TaskflowApplication` — `main()` does `new TaskService()` and calls it. No
+  `@SpringBootApplication`, no container.
 
 ## Run
 ```bash
-mvn spring-boot:run
+mvn compile exec:java -Dexec.mainClass=com.exactsciences.taskflow.TaskflowApplication
 ```
-The app starts the Spring `ApplicationContext`, prints the banner, and exits
-(there's no web server yet — that arrives in branch 06).
+Expected:
+```
+Creating task: Write bootcamp materials
+[EMAIL] to=user@taskflow.dev : Task created: Write bootcamp materials
+...
+```
 
-## Talking points
-- **Starter dependencies** — `spring-boot-starter` pulls in core + logging + a
-  curated, version-aligned dependency set. You never pick versions yourself; the
-  parent BOM does.
-- **Embedded container** — coming once we add `-web`; Boot favors *embedded*
-  servers over deploying a WAR to an external one.
-- **`@SpringBootApplication`** — a meta-annotation. We decode it at the end of
-  Day 1: `@Configuration` + `@EnableAutoConfiguration` + `@ComponentScan`.
-- **`SpringApplication.run(...)`** — bootstraps the container.
+## 🏋️ Exercise — switch Email to SMS
+Add an `SmsNotificationService` and make `TaskService` use it instead.
 
-## 🔵 Stretch (senior)
-Run `mvn dependency:tree` and find how many JARs one `spring-boot-starter` line
-brought in. Ask: who chose those versions?
+Notice what you had to do: **edit `TaskService`'s source code.** `TaskService`
+is *tightly coupled* to a concrete class and is responsible for *creating* its
+own dependency. Every wiring decision lives inside the class that should only
+care about business logic.
+
+## Concepts
+- Tight coupling
+- Manual object creation / wiring
+- No inversion: the class controls its own dependencies
 
 ## Next
-`01-java-without-spring` — we build the same idea *without* Spring to feel the pain.
+`02-first-spring-context` — hand object creation over to the Spring container.
