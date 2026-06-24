@@ -1,11 +1,18 @@
 package com.exactsciences.taskflow;
 
+import org.springframework.stereotype.Service;
+
+@Service
 public class TaskService {
 
-    // Tight coupling: TaskService decides WHICH notification implementation
-    // to use, and constructs it itself. To switch to SMS you must edit THIS file.
-    private final EmailNotificationService notificationService =
-            new EmailNotificationService();
+    private final EmailNotificationService notificationService;
+
+    // Constructor injection: TaskService no longer CREATES its dependency,
+    // it DECLARES what it needs. The container provides it. That is the
+    // "inversion" in Inversion of Control.
+    public TaskService(EmailNotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     public void createTask(String title) {
         System.out.println("Creating task: " + title);

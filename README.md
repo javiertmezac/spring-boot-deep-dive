@@ -1,40 +1,38 @@
-# Branch 01 — Java Without Spring
+# Branch 02 — First Spring Context
 
-**Day 1 · IoC & DI (the problem)**
+**Day 1 · IoC, ApplicationContext, Beans**
 
 ## Goal
-Feel the pain Spring exists to solve. There is **no Spring here** — `main()`
-constructs everything by hand.
+Hand object creation and wiring to the Spring container. Compare this diff to
+branch 01 — the business logic barely changed; *who builds the objects* did.
 
-## What's here
-- `EmailNotificationService` — plain class.
-- `TaskService` — creates its own `EmailNotificationService` with `new`.
-- `TaskflowApplication` — `main()` does `new TaskService()` and calls it. No
-  `@SpringBootApplication`, no container.
+## What changed vs 01
+- `EmailNotificationService` → `@Component` (a managed bean).
+- `TaskService` → `@Service`, dependency now arrives via the **constructor**
+  instead of `new`.
+- `TaskflowApplication` → `@SpringBootApplication` returns, and we run work
+  through a `@Bean CommandLineRunner`. No manual wiring anywhere.
 
 ## Run
 ```bash
-mvn compile exec:java -Dexec.mainClass=com.exactsciences.taskflow.TaskflowApplication
+mvn spring-boot:run
 ```
-Expected:
-```
-Creating task: Write bootcamp materials
-[EMAIL] to=user@taskflow.dev : Task created: Write bootcamp materials
-...
-```
-
-## 🏋️ Exercise — switch Email to SMS
-Add an `SmsNotificationService` and make `TaskService` use it instead.
-
-Notice what you had to do: **edit `TaskService`'s source code.** `TaskService`
-is *tightly coupled* to a concrete class and is responsible for *creating* its
-own dependency. Every wiring decision lives inside the class that should only
-care about business logic.
+You'll see the task output **and** a line like `Beans managed by the context: N`.
 
 ## Concepts
-- Tight coupling
-- Manual object creation / wiring
-- No inversion: the class controls its own dependencies
+- **IoC (Inversion of Control)** — you no longer create dependencies; the
+  container does, and gives them to you.
+- **ApplicationContext** — the container. `run()` returns it. It holds every bean.
+- **Bean** — an object the container manages (created via `@Component` scanning
+  or a `@Bean` method).
+- **Constructor injection** — the preferred way to receive dependencies
+  (immutable, testable, no hidden `@Autowired` field magic).
+
+## 🔵 Stretch (senior)
+`@Component` vs `@Service` vs `@Repository` — functionally all beans. Why do the
+specialized stereotypes exist? (Hint: intent + `@Repository`'s exception
+translation, which we'll meet on Day 2.)
 
 ## Next
-`02-first-spring-context` — hand object creation over to the Spring container.
+`03-dependency-injection` — introduce an interface with two implementations and
+let Spring choose between them.

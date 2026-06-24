@@ -1,9 +1,12 @@
 package com.exactsciences.taskflow;
 
+import org.springframework.stereotype.Component;
+
 /**
- * Plain Java. No Spring annotations.
- * TaskService creates this directly with `new` — that is the problem.
+ * Now a Spring-managed bean. The container creates exactly one instance
+ * (singleton scope) and hands it to whoever needs it.
  */
+@Component
 public class EmailNotificationService {
 
     public void send(String to, String message) {
