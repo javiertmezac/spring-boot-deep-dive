@@ -1,38 +1,42 @@
-# Branch 02 — First Spring Context
+# Branch 03 — Dependency Injection
 
-**Day 1 · IoC, ApplicationContext, Beans**
+**Day 1 · Polymorphism, bean resolution, constructor injection**
 
 ## Goal
-Hand object creation and wiring to the Spring container. Compare this diff to
-branch 01 — the business logic barely changed; *who builds the objects* did.
+Remember the branch 01 exercise where switching Email→SMS meant editing
+`TaskService`? Now it's a wiring decision. `TaskService` depends only on the
+`NotificationService` **interface**.
 
-## What changed vs 01
-- `EmailNotificationService` → `@Component` (a managed bean).
-- `TaskService` → `@Service`, dependency now arrives via the **constructor**
-  instead of `new`.
-- `TaskflowApplication` → `@SpringBootApplication` returns, and we run work
-  through a `@Bean CommandLineRunner`. No manual wiring anywhere.
+## What changed vs 02
+- New `NotificationService` interface.
+- `EmailNotificationService` and `SmsNotificationService` both implement it.
+- `EmailNotificationService` is `@Primary`.
+- `TaskService` now injects the interface — and never names a concrete class.
+
+## The resolution problem
+Two beans satisfy `NotificationService`. How does the container pick?
+- **`@Primary`** — the default winner when the type is ambiguous → Email runs.
+- **`@Qualifier("smsNotificationService")`** — explicitly demand a specific bean.
+
+Without `@Primary` or `@Qualifier`, startup **fails** with
+`NoUniqueBeanDefinitionException` — a great thing to show on purpose.
 
 ## Run
 ```bash
 mvn spring-boot:run
 ```
-You'll see the task output **and** a line like `Beans managed by the context: N`.
+Output shows `[EMAIL]` (the primary).
+
+## 🏋️ Exercise
+1. Add `@Qualifier("smsNotificationService")` to the `TaskService` constructor
+   parameter → output flips to `[SMS]`, with **zero** changes to business logic.
+2. Remove `@Primary` and *don't* qualify → watch the context fail to start.
+   Read the exception message.
 
 ## Concepts
-- **IoC (Inversion of Control)** — you no longer create dependencies; the
-  container does, and gives them to you.
-- **ApplicationContext** — the container. `run()` returns it. It holds every bean.
-- **Bean** — an object the container manages (created via `@Component` scanning
-  or a `@Bean` method).
-- **Constructor injection** — the preferred way to receive dependencies
-  (immutable, testable, no hidden `@Autowired` field magic).
-
-## 🔵 Stretch (senior)
-`@Component` vs `@Service` vs `@Repository` — functionally all beans. Why do the
-specialized stereotypes exist? (Hint: intent + `@Repository`'s exception
-translation, which we'll meet on Day 2.)
+- Program to an interface (polymorphism)
+- Bean resolution: by type, then `@Primary` / `@Qualifier`
+- Why constructor injection makes the dependency explicit and testable
 
 ## Next
-`03-dependency-injection` — introduce an interface with two implementations and
-let Spring choose between them.
+`04-command-line-runner` — a closer look at startup lifecycle and seeding data.
