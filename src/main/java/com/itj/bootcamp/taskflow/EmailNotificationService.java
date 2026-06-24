@@ -1,4 +1,4 @@
-package com.exactsciences.taskflow;
+package com.itj.bootcamp.taskflow;
 
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
