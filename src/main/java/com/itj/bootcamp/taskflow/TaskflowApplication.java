@@ -25,11 +25,14 @@ public class TaskflowApplication {
                     + Arrays.toString(environment.getActiveProfiles()));
             System.out.println(">> Greeting: " + properties.getGreeting());
 
+            // Seed enough rows to demonstrate pagination and search.
             taskService.createTask("Write bootcamp materials");
             taskService.createTask("Prepare Day 3 demo");
+            taskService.createTask("Review pull requests");
+            taskService.createTask("Write integration tests");
+            taskService.createTask("Plan Spring AI session");
 
-            System.out.println(">> Current tasks:");
-            taskService.findAll().forEach(task -> System.out.println("   " + task));
+            System.out.println(">> Seeded tasks. Try /tasks?page=0&size=2 and /tasks?q=write");
         };
     }
 }

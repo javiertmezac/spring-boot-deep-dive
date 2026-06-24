@@ -1,12 +1,13 @@
 package com.itj.bootcamp.taskflow;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-/**
- * No implementation needed. Spring Data generates a proxy at runtime that
- * provides save / findAll / findById / delete / count and more, for free.
- *
- * This IS the repository pattern — and the bean you @Autowire is a dynamic proxy.
- */
 public interface TaskRepository extends JpaRepository<Task, Long> {
+
+    // Query derivation: Spring Data parses this METHOD NAME and writes the SQL
+    // for you — "where lower(title) like lower('%' || ?1 || '%')" — and the
+    // Pageable adds LIMIT/OFFSET/ORDER BY. No @Query, no implementation.
+    Page<Task> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 }

@@ -1,7 +1,8 @@
 package com.itj.bootcamp.taskflow;
 
-import java.util.List;
 import java.util.NoSuchElementException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +36,11 @@ public class TaskService {
         return saved;
     }
 
-    public List<Task> findAll() {
-        return taskRepository.findAll();
+    public Page<Task> search(String query, Pageable pageable) {
+        if (query == null || query.isBlank()) {
+            return taskRepository.findAll(pageable);
+        }
+        return taskRepository.findByTitleContainingIgnoreCase(query, pageable);
     }
 
     public Task getById(Long id) {

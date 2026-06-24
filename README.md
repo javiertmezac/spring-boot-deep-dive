@@ -1,47 +1,42 @@
-# Branch 10 — Service Layer
+# Branch 11 — Pagination & Search
 
-**Day 2 · Spring Data — layered architecture & transactions**
+**Day 2 · Spring Data — query derivation & pagination**
 
 ## Goal
-Make the three layers explicit and give the service real responsibilities:
-business rules and transaction boundaries.
+Don't return unbounded lists. Page results and add search — using a method name
+instead of SQL.
 
-```
-Controller (HTTP)  ->  Service (rules + @Transactional)  ->  Repository (data)
-```
-
-## What changed vs 09
-- `TaskService` is `@Transactional(readOnly = true)` by default; writes
-  (`createTask`, `completeTask`) override with a read/write transaction.
-- New business operations: `getById(id)` and `completeTask(id)`.
-- New endpoints: `GET /tasks/{id}` and `POST /tasks/{id}/complete`.
+## What changed vs 10
+- `TaskRepository.findByTitleContainingIgnoreCase(String, Pageable)` — a
+  **derived query**: Spring Data writes the SQL from the method name.
+- `TaskService.search(q, pageable)` returns `Page<Task>`.
+- `GET /tasks` now takes `?page=&size=&sort=` (resolved into a `Pageable`
+  automatically) plus an optional `?q=` filter, and returns a page.
+- Startup seeds 5 tasks for a visible demo.
 
 ## Run & test
 ```bash
 mvn spring-boot:run
 
-curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Finish slides"}'
-curl -X POST http://localhost:8080/tasks/1/complete
-curl http://localhost:8080/tasks/1
-# missing id -> HTTP 500 for now (fixed in branch 12)
-curl -i http://localhost:8080/tasks/999
+# first page of 2
+curl "http://localhost:8080/tasks?page=0&size=2"
+# sorted by title desc
+curl "http://localhost:8080/tasks?sort=title,desc"
+# search
+curl "http://localhost:8080/tasks?q=write"
 ```
+The response includes `content`, `totalElements`, `totalPages`, `number`, `size`.
 
 ## Concepts
-- **Layered architecture** — each layer has one job; dependencies point inward.
-- **`@Transactional`** — the service method is the transaction boundary; commit
-  on success, rollback on a runtime exception.
-- **Dirty checking** — inside a transaction, modifying a managed entity persists
-  on commit without an explicit save.
-
-## ⚠️ Note
-`GET /tasks/999` returns an ugly 500 with a stack-traced error. That's the hook
-for branch 12.
+- **Query derivation** — `findBy<Field><Op>` parsed into a query; no `@Query`.
+- **`Pageable` / `Page<T>`** — limit/offset + total count + sort, resolved from
+  request params by Spring Data web support.
+- Where derivation stops and `@Query` / Specifications begin.
 
 ## 🔵 Stretch (senior)
-Throw a `RuntimeException` mid-transaction after a `save` and show the rollback.
-Then switch it to a checked exception and observe that rollback does NOT happen
-by default — discuss `@Transactional(rollbackFor = ...)`.
+Add `findByCompleted(boolean, Pageable)` and an endpoint filter. Then enable
+`logging.level.org.hibernate.SQL=DEBUG` and compare the generated SQL for a
+derived query vs a hand-written `@Query`.
 
 ## Next
-`11-pagination-search` — finish the Spring Data block.
+`12-global-exception-handler` — turn that ugly 500 into a clean 404.

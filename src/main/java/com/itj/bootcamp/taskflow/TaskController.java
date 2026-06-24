@@ -3,12 +3,14 @@ package com.itj.bootcamp.taskflow;
 import com.itj.bootcamp.taskflow.dto.CreateTaskRequest;
 import com.itj.bootcamp.taskflow.dto.TaskResponse;
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -21,9 +23,12 @@ public class TaskController {
         this.taskService = taskService;
     }
 
+    // Spring resolves Pageable from ?page=&size=&sort= automatically.
+    // Optional ?q= filters by title.
     @GetMapping
-    public List<TaskResponse> getAll() {
-        return taskService.findAll().stream().map(TaskResponse::from).toList();
+    public Page<TaskResponse> getAll(@RequestParam(required = false) String q,
+                                     Pageable pageable) {
+        return taskService.search(q, pageable).map(TaskResponse::from);
     }
 
     @GetMapping("/{id}")
