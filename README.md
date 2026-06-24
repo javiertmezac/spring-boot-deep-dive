@@ -1,44 +1,60 @@
-# Branch 04 — CommandLineRunner & Startup Lifecycle
+# Branch 05 — Properties & Profiles
 
-**Day 1 · Bean lifecycle & initialization**
+**Day 1 · Externalized configuration & environment-specific behavior** *(last Day 1 topic)*
 
 ## Goal
-Understand *when* things happen at startup, and the standard hook for running
-code once the application is ready.
+Stop hard-coding values. Bind configuration type-safely, and change behavior per
+environment without recompiling.
 
-## What changed vs 03
-- New `Task` domain object (in-memory for now).
-- `TaskService` holds an in-memory list and exposes `createTask` / `findAll`,
-  plus a `@PostConstruct init()` to show the init hook.
-- `CommandLineRunner` seeds three tasks at startup and prints them.
+## What changed vs 04
+- `TaskflowProperties` (`@ConfigurationProperties(prefix = "taskflow")`) binds
+  all `taskflow.*` keys; registered via `@EnableConfigurationProperties`.
+- `spring-boot-configuration-processor` added → IDE auto-complete for our keys.
+- Three property files: `application.properties` (base, activates `dev`),
+  `application-dev.properties`, `application-prod.properties`.
+- `EmailNotificationService` → `@Profile("dev")`, `SmsNotificationService` →
+  `@Profile("prod")`. The active profile now selects the implementation.
+- `TaskService` uses `properties.getRecipient()` instead of a literal.
 
-## Run
+## Run — dev (default)
 ```bash
 mvn spring-boot:run
 ```
-Watch the **order** of the output:
 ```
->> TaskService bean initialized (@PostConstruct)   <- during context startup
-...Spring "Started TaskflowApplication" log line...
->> CommandLineRunner: seeding tasks                <- after context is ready
->> Current tasks:
-   Task{id=1, ...}
+>> Active profiles: [dev]
+>> Greeting: Hello from DEV (Email notifications)
+[EMAIL] to=dev-user@taskflow.dev : Task created: ...
 ```
+
+## Run — prod
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=prod
+```
+```
+>> Active profiles: [prod]
+>> Greeting: Hello from PROD (SMS notifications)
+[SMS] to=ops@taskflow.dev : Task created: ...
+```
+Same code, same beans declared — **only the active profile changed**, and both
+the notification channel *and* the config values flipped.
 
 ## Concepts
-- **Bean initialization** — `@PostConstruct` runs after injection, before the
-  app is "ready".
-- **`CommandLineRunner` / `ApplicationRunner`** — run *after* the context is
-  fully started; ideal for seeding/bootstrapping. Order multiple runners with
-  `@Order`.
-- **Startup lifecycle** — construct beans → inject → `@PostConstruct` →
-  context refreshed → runners.
+- Externalized configuration & property precedence (CLI > profile file > base)
+- `@ConfigurationProperties` (type-safe) vs `@Value` (one-off)
+- `@Profile` for environment-specific beans
+- How this ties back to DI: profiles are just another bean-resolution tool
 
 ## 🔵 Stretch (senior)
-Add a second `CommandLineRunner` and use `@Order(1)` / `@Order(2)` to control
-which runs first. Then add `implements ApplicationListener<ApplicationReadyEvent>`
-to a bean and see where *that* fires relative to the runners.
+Override `taskflow.recipient` with an env var (`TASKFLOW_RECIPIENT=...`) or a
+JVM `-Dtaskflow.recipient=` and watch it win over the file. Discuss the property
+source order Spring Boot uses.
+
+## End of Day 1 — Annotations recap
+Decode `@SpringBootApplication` = `@Configuration` + `@EnableAutoConfiguration`
++ `@ComponentScan`. Map every annotation seen so far: `@Component`/`@Service`,
+`@Bean`, `@Primary`/`@Qualifier`, `@PostConstruct`, `@ConfigurationProperties`,
+`@EnableConfigurationProperties`, `@Profile`. `@EnableAutoConfiguration` is the
+thread we pull on Day 3.
 
 ## Next
-`05-properties-and-profiles` — externalize configuration and switch behavior per
-environment. (Last Day 1 topic.)
+`06-rest-api` — Day 2 begins: expose tasks over HTTP with Spring MVC.

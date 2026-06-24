@@ -1,4 +1,4 @@
-package com.exactsciences.taskflow;
+package com.itj.bootcamp.taskflow;
 
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -10,18 +10,16 @@ import org.springframework.stereotype.Service;
 public class TaskService {
 
     private final NotificationService notificationService;
+    private final TaskflowProperties properties;
 
-    // In-memory store for now. Replaced by a JPA repository in branch 09.
     private final List<Task> tasks = new ArrayList<>();
     private final AtomicLong ids = new AtomicLong(0);
 
-    public TaskService(NotificationService notificationService) {
+    public TaskService(NotificationService notificationService, TaskflowProperties properties) {
         this.notificationService = notificationService;
+        this.properties = properties;
     }
 
-    // @PostConstruct runs AFTER the bean is constructed and dependencies are
-    // injected, but BEFORE the context is fully ready (and before any
-    // CommandLineRunner). Good for showing bean initialization order.
     @PostConstruct
     void init() {
         System.out.println(">> TaskService bean initialized (@PostConstruct)");
@@ -30,7 +28,8 @@ public class TaskService {
     public Task createTask(String title) {
         Task task = new Task(ids.incrementAndGet(), title);
         tasks.add(task);
-        notificationService.send("user@taskflow.dev", "Task created: " + title);
+        // Recipient now comes from configuration, not a hard-coded string.
+        notificationService.send(properties.getRecipient(), "Task created: " + title);
         return task;
     }
 

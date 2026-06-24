@@ -1,11 +1,12 @@
-package com.exactsciences.taskflow;
+package com.itj.bootcamp.taskflow;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * A second implementation of the same interface. Bean name defaults to
- * "smsNotificationService" — that name is what @Qualifier targets.
+ * Only a bean when the "prod" profile is active.
  */
+@Profile("prod")
 @Component
 public class SmsNotificationService implements NotificationService {
 
