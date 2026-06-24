@@ -31,6 +31,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll()
+                // Open for the bootcamp demo. In production, secure actuator
+                // (especially /beans, /env, /conditions) behind a role.
+                .requestMatchers("/actuator/**").permitAll()
                 // Authorization: writing tasks requires the ADMIN role...
                 .requestMatchers(HttpMethod.POST, "/tasks/**").hasRole("ADMIN")
                 // ...everything else just requires a logged-in user.

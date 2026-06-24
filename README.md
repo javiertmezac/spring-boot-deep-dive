@@ -1,56 +1,52 @@
-# Branch 13 — Security (Basic Auth)
+# Branch 14 — Internals & Actuator
 
-**Day 2 · Spring Security**
+**Day 2 · Internals** *(the senior payoff — and the bridge to Day 3)*
 
 ## Goal
-Lock the API down: nobody reads tasks without logging in, and only an admin can
-create them.
+Open the hood. Make the container's mechanics *visible*: how beans get created,
+when lifecycle events fire, and how to introspect a running app.
 
-## What changed vs 12
-- Added `spring-boot-starter-security`. (Just adding it secures everything with
-  a generated password — show that first, then replace it.)
-- `config/SecurityConfig` defines a `SecurityFilterChain`:
-  - `/h2-console/**` → open
-  - `POST /tasks/**` → role `ADMIN`
-  - everything else → authenticated
-  - HTTP Basic auth
-- Two in-memory users: `user/password` (USER) and `admin/admin` (ADMIN).
+## What changed vs 13
+- `internals/LoggingBeanPostProcessor` — a `BeanPostProcessor` that logs each of
+  our beans as it's initialized. **This is the same hook Spring uses** to build
+  `@Autowired`, `@Transactional`/AOP proxies, validation, etc.
+- `internals/StartupReporter` — injects the `ApplicationContext`, listens for
+  `ApplicationReadyEvent`, prints the bean count.
+- Added `spring-boot-starter-actuator`; exposed `health, beans, conditions, env,
+  mappings`; security permits `/actuator/**`.
 
-## Run & test
+## Run & explore
 ```bash
 mvn spring-boot:run
+```
+Watch the startup log: `[BeanPostProcessor] before-init: taskService ...` for
+each bean, then `Context ready. Total bean definitions: N`.
 
-# no credentials -> 401
-curl -i http://localhost:8080/tasks
-
-# user can read -> 200
-curl -u user:password http://localhost:8080/tasks
-
-# user CANNOT create -> 403
-curl -i -u user:password -X POST http://localhost:8080/tasks \
-  -H "Content-Type: application/json" -d '{"title":"Nope"}'
-
-# admin can create -> 200
-curl -u admin:admin -X POST http://localhost:8080/tasks \
-  -H "Content-Type: application/json" -d '{"title":"Admin task"}'
+```bash
+curl http://localhost:8080/actuator/health
+curl http://localhost:8080/actuator/beans       | jq '.contexts.application.beans | keys'
+curl http://localhost:8080/actuator/conditions   # the auto-configuration report
+curl http://localhost:8080/actuator/mappings      # every URL -> handler
 ```
 
-## Concepts
-- **Filter chain** — security is servlet filters running before the controller.
-- **Authentication** (who are you? — Basic creds → `UserDetailsService`) vs
-  **Authorization** (what may you do? — role rules).
-- **`PasswordEncoder`** — never store plaintext; BCrypt here.
-
-## ⚠️ Teaching notes
-- CSRF is disabled only because this is a stateless API demo. Leave it ON for
-  session/browser apps.
-- In-memory users are for demos; real apps back `UserDetailsService` with a DB
-  or an OIDC provider (e.g. Okta, as in the LIFT platform).
+## Concepts — how Spring actually works
+- **`BeanFactory` vs `ApplicationContext`** — the factory creates/wires beans;
+  the context adds events, i18n, resource loading, and runs `BeanPostProcessor`s.
+- **`BeanPostProcessor`** — the extension point behind most Spring "magic".
+- **Lifecycle** — definitions registered → instantiate → inject → BPP before →
+  `@PostConstruct` → BPP after → ready → `ApplicationReadyEvent`.
+- **Actuator** — production observability; `/conditions` previews exactly the
+  auto-configuration story we unpack on Day 3.
 
 ## 🔵 Stretch (senior)
-Print the filter chain (`logging.level.org.springframework.security=DEBUG`) and
-count how many filters a request passes through. Discuss where you'd plug a JWT
-or OAuth2 resource-server filter.
+In `/actuator/conditions`, find a config that was **negative** (skipped) and read
+why. That `@ConditionalOn...` decision is precisely what you'll write in your own
+starter tomorrow.
 
-## Next
-`14-internals-and-actuator` — open the hood: beans, lifecycle, conditions.
+## End of Day 2
+You've built a secured, persistent, paginated REST API — and seen the machinery
+underneath it.
+
+## Next (Day 3)
+`15-custom-starter` — the highlight: build your own Spring Boot starter and
+auto-configuration.
