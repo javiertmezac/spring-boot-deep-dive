@@ -1,35 +1,42 @@
-# Branch 07 — Request/Response DTOs
+# Branch 08 — Validation
 
-**Day 2 · Spring MVC — API contracts**
+**Day 2 · Spring MVC — request validation**
 
 ## Goal
-Give the API an explicit, stable contract. Stop accepting loose maps and stop
-leaking the internal domain object.
+Reject malformed requests at the edge, before any business logic runs.
 
-## What changed vs 06
-- New `dto` package with two records:
-  - `CreateTaskRequest(title)` — the input contract.
-  - `TaskResponse(id, title, completed)` — the output contract, built via
-    `TaskResponse.from(Task)`.
-- `TaskController` now consumes `CreateTaskRequest` and returns `TaskResponse`.
-  The domain `Task` no longer appears in any method signature.
+## What changed vs 07
+- Added `spring-boot-starter-validation` (Hibernate Validator).
+- `CreateTaskRequest.title` now carries `@NotBlank` + `@Size(min=3, max=120)`.
+- `TaskController.create` marks the body `@Valid`.
 
-## Run
+## Run & test
 ```bash
 mvn spring-boot:run
-curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"With a real DTO"}'
+
+# valid -> 200
+curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Valid task"}'
+
+# invalid (blank) -> 400 Bad Request
+curl -i -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":""}'
+
+# invalid (too short) -> 400
+curl -i -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"ab"}'
 ```
-Behaviorally identical to branch 06 — the win is structural.
 
 ## Concepts
-- **API contract** — clients couple to the DTO, not your internals.
-- **Separation of concerns** — domain/persistence shape ≠ wire shape. You can
-  add a DB column or rename a field without breaking clients.
-- **Records** as DTOs — immutable, minimal boilerplate, great Jackson support.
+- **Bean Validation (Jakarta)** — declarative constraints on the DTO.
+- **`@Valid`** — tells Spring MVC to run those constraints; a violation throws
+  `MethodArgumentNotValidException` → automatic **400**.
+- Validation belongs on the **contract**, not buried in the service.
+
+## ⚠️ Note
+The default 400 body is generic. Branch 12 (`@ControllerAdvice`) makes error
+responses clean and consistent.
 
 ## 🔵 Stretch (senior)
-Add a field to `Task` (e.g. `createdBy`) and confirm the API response is
-unchanged because `TaskResponse` didn't expose it. That decoupling is the point.
+Add `@Future` to a new `dueDate` field, or write a custom constraint annotation.
+Discuss where validation should NOT live (don't re-validate the same rule in 3 layers).
 
 ## Next
-`08-validation` — reject bad requests before they reach the service.
+`09-jpa-h2` — start of the Spring Data block: real persistence.

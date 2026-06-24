@@ -2,6 +2,7 @@ package com.itj.bootcamp.taskflow;
 
 import com.itj.bootcamp.taskflow.dto.CreateTaskRequest;
 import com.itj.bootcamp.taskflow.dto.TaskResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +29,7 @@ public class TaskController {
     }
 
     @PostMapping
-    public TaskResponse create(@RequestBody CreateTaskRequest request) {
+    public TaskResponse create(@Valid @RequestBody CreateTaskRequest request) {
         Task created = taskService.createTask(request.title());
         return TaskResponse.from(created);
     }
