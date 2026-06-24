@@ -5,6 +5,7 @@ import com.itj.bootcamp.taskflow.dto.TaskResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,17 +21,23 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    // The API now speaks DTOs only. The domain Task never crosses the boundary.
     @GetMapping
     public List<TaskResponse> getAll() {
-        return taskService.findAll().stream()
-                .map(TaskResponse::from)
-                .toList();
+        return taskService.findAll().stream().map(TaskResponse::from).toList();
+    }
+
+    @GetMapping("/{id}")
+    public TaskResponse getById(@PathVariable Long id) {
+        return TaskResponse.from(taskService.getById(id));
     }
 
     @PostMapping
     public TaskResponse create(@Valid @RequestBody CreateTaskRequest request) {
-        Task created = taskService.createTask(request.title());
-        return TaskResponse.from(created);
+        return TaskResponse.from(taskService.createTask(request.title()));
+    }
+
+    @PostMapping("/{id}/complete")
+    public TaskResponse complete(@PathVariable Long id) {
+        return TaskResponse.from(taskService.completeTask(id));
     }
 }

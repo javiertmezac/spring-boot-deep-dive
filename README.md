@@ -1,43 +1,47 @@
-# Branch 09 — JPA + H2
+# Branch 10 — Service Layer
 
-**Day 2 · Spring Data (persistence)**
+**Day 2 · Spring Data — layered architecture & transactions**
 
 ## Goal
-Replace the in-memory list with a real database and the repository pattern —
-without writing any SQL or any DAO implementation.
+Make the three layers explicit and give the service real responsibilities:
+business rules and transaction boundaries.
 
-## What changed vs 08
-- Added `spring-boot-starter-data-jpa` + `h2` (in-memory DB).
-- `Task` is now a JPA `@Entity` (`@Id @GeneratedValue`); the **DB** assigns ids.
-- New `TaskRepository extends JpaRepository<Task, Long>` — no implementation.
-- `TaskService` saves/loads through the repository; the `ArrayList`/`AtomicLong`
-  are gone.
-- `application.properties` configures H2, SQL logging, and the H2 console.
+```
+Controller (HTTP)  ->  Service (rules + @Transactional)  ->  Repository (data)
+```
 
-## Run
+## What changed vs 09
+- `TaskService` is `@Transactional(readOnly = true)` by default; writes
+  (`createTask`, `completeTask`) override with a read/write transaction.
+- New business operations: `getById(id)` and `completeTask(id)`.
+- New endpoints: `GET /tasks/{id}` and `POST /tasks/{id}/complete`.
+
+## Run & test
 ```bash
 mvn spring-boot:run
-```
-- Watch the console: Hibernate logs the `insert`/`select` SQL it generates.
-- Open `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:taskflow`,
-  user `sa`) and run `SELECT * FROM TASKS;`.
 
-```bash
-curl http://localhost:8080/tasks
-curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Persisted task"}'
+curl -X POST http://localhost:8080/tasks -H "Content-Type: application/json" -d '{"title":"Finish slides"}'
+curl -X POST http://localhost:8080/tasks/1/complete
+curl http://localhost:8080/tasks/1
+# missing id -> HTTP 500 for now (fixed in branch 12)
+curl -i http://localhost:8080/tasks/999
 ```
 
 ## Concepts
-- **ORM** — `Task` ↔ `TASKS` table mapping via annotations.
-- **Repository pattern** — `JpaRepository` gives CRUD + paging for free; the bean
-  is a runtime-generated proxy.
-- **Auto-configuration teaser** — adding the JPA starter auto-configured a
-  `DataSource`, `EntityManagerFactory`, and `TransactionManager`. We dig into
-  *how* on Day 3.
+- **Layered architecture** — each layer has one job; dependencies point inward.
+- **`@Transactional`** — the service method is the transaction boundary; commit
+  on success, rollback on a runtime exception.
+- **Dirty checking** — inside a transaction, modifying a managed entity persists
+  on commit without an explicit save.
+
+## ⚠️ Note
+`GET /tasks/999` returns an ugly 500 with a stack-traced error. That's the hook
+for branch 12.
 
 ## 🔵 Stretch (senior)
-Set `spring.jpa.hibernate.ddl-auto=create-drop` vs `update` and discuss why you'd
-never let Hibernate manage schema in production (→ Flyway/Liquibase / Ratchet).
+Throw a `RuntimeException` mid-transaction after a `save` and show the rollback.
+Then switch it to a checked exception and observe that rollback does NOT happen
+by default — discuss `@Transactional(rollbackFor = ...)`.
 
 ## Next
-`10-service-layer` — formalize the layering and add real business logic + transactions.
+`11-pagination-search` — finish the Spring Data block.
