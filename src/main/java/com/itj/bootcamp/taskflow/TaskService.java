@@ -6,6 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.UUID;
+
 /**
  * The service layer owns business rules and transaction boundaries.
  * Controllers stay thin (HTTP only); repositories stay dumb (data only).
@@ -47,7 +50,7 @@ public class TaskService {
         return taskRepository.findByTitleContainingIgnoreCase(query, pageable);
     }
 
-    public Task getById(Long id) {
+    public Task getById(UUID id) {
         // A missing id throws TaskNotFoundException, which GlobalExceptionHandler
         // maps to a clean HTTP 404. The service stays HTTP-agnostic.
         return taskRepository.findById(id)
@@ -55,9 +58,9 @@ public class TaskService {
     }
 
     @Transactional
-    public Task completeTask(Long id) {
+    public Task completeTask(UUID id) {
         Task task = getById(id);
-        task.setCompleted(true);
+        task.setCompleted(Instant.now());
         // Inside a transaction, JPA dirty-checking flushes the change on commit;
         // the explicit save() documents intent.
         return taskRepository.save(task);
